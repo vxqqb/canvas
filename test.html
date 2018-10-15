@@ -8,6 +8,7 @@
         body {
             background-color: #e1e1e1;
             margin: 20px;
+            display: flex;
         }
         #canvas-wrapper {
             height: 100%;
@@ -15,7 +16,10 @@
         }
         #can {
             background-color: white;
-            border: solid 1px #a3a3a3;
+            /* border: solid 1px #a3a3a3; */
+        }
+        #control-wrapper {
+            margin-left: 20px;
         }
     </style>
 </head>
@@ -23,7 +27,7 @@
     <div id="canvas-wrapper">
         <canvas id="can"></canvas>
     </div>
-    <div>
+    <div id="control-wrapper">
         <button id="augment" onclick="augment()">+</button>
         <button id="reduce" onclick="reduce()">-</button>
         <button id="moveUp" onclick="move(200)">↑</button>
