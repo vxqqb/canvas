@@ -82,17 +82,6 @@ document.addEventListener('mousemove', (e) => {
     }
 })
 document.addEventListener('mouseup', (e) => {
-    if (e.target.id === 'can') {
-        if (mouseDown) {
-            let yDiff = e.offsetY - mouseLastMovePoint.y
-            // 还没有滑到头的话触发redraw
-            if (yDiff > 0 && timeBoundStart > initStart) {
-                move(-yDiff)
-            } else if (yDiff < 0 && timeBoundEnd < initEnd) {
-                move(-yDiff)
-            }
-        }
-    }
     mouseDown = false
 })
 
