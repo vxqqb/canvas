@@ -42,7 +42,7 @@ const TIMELINE_SECTION_COUNT = 5 // 整条bar分5段里抽取timeline展示时�
 document.addEventListener('mousewheel', (e) => {
     e.preventDefault()
     e.stopPropagation()
-    if (e.target.id === 'can' && (Date.now() - lastFrameTime > 100)) {
+    if (e.target.id === 'can') {
         lastFrameTime = Date.now()
         if (e.wheelDelta > 0) {
             augment(e.offsetY)
