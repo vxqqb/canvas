@@ -10,7 +10,7 @@ var initEnd = 1539014400000 - 1
 var initDiff = initEnd - initStart
 
 const TIME_LINE_COUNT = 1000
-const HIGH_LIGHT_TIME_LINE_COUNT = 150
+const HIGH_LIGHT_TIME_LINE_COUNT = 100
 var highlightStart = 1538979180000 // Mon Oct 08 2018 14:13:00 GMT+0800 (中国标准时间)
 var times = Array.from({length: TIME_LINE_COUNT}).map(() => {
     return parseInt(Math.random() * initDiff) + initStart
@@ -37,6 +37,7 @@ var TIME_SCALE_STEP = 0.1 // 单步缩放比例
 var lastFrameTime = Date.now()
 var mouseDown = false
 var mouseLastMovePoint
+var redTime
 const TIMELINE_SECTION_COUNT = 5 // 整条bar分5段里抽取timeline展示时间刻度
 
 document.addEventListener('mousewheel', (e) => {
@@ -65,6 +66,15 @@ document.addEventListener('mousedown', (e) => {
 })
 document.addEventListener('mousemove', (e) => {
     if (e.target.id === 'can') {
+        let relatedTime = _calculateChangePointTime(e.offsetY)
+        times.forEach((time) => {
+            if (time - 10000 < relatedTime && time + 10000 > relatedTime) {
+                console.log('vy' + time)
+                redTime = time
+                clearCanvas()
+                draw()
+            }
+        })
         if (mouseDown) {
             let yDiff = e.offsetY - mouseLastMovePoint.y
             // 还没有滑到头的话触发redraw
@@ -85,6 +95,11 @@ document.addEventListener('mousemove', (e) => {
 document.addEventListener('mouseup', (e) => {
     mouseDown = false
 })
+// document.addEventListener('mouseover', (e) => {
+//     if (e.target.id === 'can') {
+//         console.log('y' + e.offsetY)
+//     }
+// })
 
 draw()
 function move(cssMove) {
@@ -213,6 +228,9 @@ function draw() {
         let color = '#000'
         if (highLightTimes.indexOf(ctime) >= 0) {
             color = '#f63'
+        }
+        if (ctime === redTime) {
+            color = 'blue'
         }
         drawTimeLine(50 * ratio, barHeight * ((ctime - timeBoundStart) / dif), color)
         if (timesNeedStamp.indexOf(ctime) >= 0) {
