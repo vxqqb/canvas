@@ -12,7 +12,7 @@ var initDiff = initEnd - initStart
 const TIME_LINE_COUNT = 1000
 const HIGH_LIGHT_TIME_LINE_COUNT = 150
 var highlightStart = 1538979180000 // Mon Oct 08 2018 14:13:00 GMT+0800 (中国标准时间)
-var times = Array.from({length: TIME_LINE_COUNT}).map((i) => {
+var times = Array.from({length: TIME_LINE_COUNT}).map(() => {
     return parseInt(Math.random() * initDiff) + initStart
 })
 times.sort((a, b) => {
@@ -37,6 +37,7 @@ var TIME_SCALE_STEP = 0.1 // 单步缩放比例
 var lastFrameTime = Date.now()
 var mouseDown = false
 var mouseLastMovePoint
+const TIMELINE_SECTION_COUNT = 5 // 整条bar分5段里抽取timeline展示时间刻度
 
 document.addEventListener('mousewheel', (e) => {
     e.preventDefault()
@@ -187,15 +188,36 @@ function drawText(text, width, height) {
 }
 function draw() {
     drawLine({ x: timeTextWidth, y: 0 }, { x: timeTextWidth, y: barHeight })
+    var dif = timeBoundEnd - timeBoundStart
+    // 滤出需要标时间刻度的timeline，在bar的第2，3，4段里分别取一条timeline展示时间刻度
+    let timesNeedStamp
+    if (dif > TIMELINE_SECTION_COUNT) {
+        let timeSectionHeads = Array.from({length: TIMELINE_SECTION_COUNT}).map((noneed, i) => {
+            return timeBoundStart + i * (dif / TIMELINE_SECTION_COUNT)
+        }) // 获取5段头的time值
+        timesNeedStamp = times.reduce((acc, current) => {
+            if (acc.length < TIMELINE_SECTION_COUNT - 1) {
+                if (current > timeSectionHeads[acc.length + 1]) {
+                    return acc.concat(current)
+                } else {
+                    return acc
+                }
+            } else {
+                return acc
+            }
+        }, [])
+    }
     times.filter((ctime) => {
         return ctime >= timeBoundStart && ctime <= timeBoundEnd
     }).forEach(function(ctime) {
-        var dif = timeBoundEnd - timeBoundStart
         let color = '#000'
         if (highLightTimes.indexOf(ctime) >= 0) {
             color = '#f63'
         }
         drawTimeLine(50 * ratio, barHeight * ((ctime - timeBoundStart) / dif), color)
+        if (timesNeedStamp.indexOf(ctime) >= 0) {
+            drawText(stringify(new Date(ctime)), 0, barHeight * ((ctime - timeBoundStart) / dif) + (5 * ratio))
+        }
     })
     drawText(stringify(new Date(timeBoundStart)), 0, 10 * ratio)
     drawText(stringify(new Date(timeBoundEnd)), 0, barHeight - (10 * ratio))
