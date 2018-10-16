@@ -37,8 +37,12 @@ var TIME_SCALE_STEP = 0.1 // 单步缩放比例
 var lastFrameTime = Date.now()
 var mouseDown = false
 var mouseLastMovePoint
-var redTime
 const TIMELINE_SECTION_COUNT = 5 // 整条bar分5段里抽取timeline展示时间刻度
+const BLACK = '#000'
+const GREY = '#bfbfbf'
+const RED = '#ff4d4f'
+const BLUE = '#1890ff'
+var $tooltip = document.getElementById('tooltip')
 
 document.addEventListener('mousewheel', (e) => {
     e.preventDefault()
@@ -67,14 +71,9 @@ document.addEventListener('mousedown', (e) => {
 document.addEventListener('mousemove', (e) => {
     if (e.target.id === 'can') {
         let relatedTime = _calculateChangePointTime(e.offsetY)
-        times.forEach((time) => {
-            if (time - 10000 < relatedTime && time + 10000 > relatedTime) {
-                console.log('vy' + time)
-                redTime = time
-                clearCanvas()
-                draw()
-            }
-        })
+        clearCanvas()
+        showToolTip(e.offsetY)
+        draw()
         if (mouseDown) {
             let yDiff = e.offsetY - mouseLastMovePoint.y
             // 还没有滑到头的话触发redraw
@@ -95,11 +94,22 @@ document.addEventListener('mousemove', (e) => {
 document.addEventListener('mouseup', (e) => {
     mouseDown = false
 })
-// document.addEventListener('mouseover', (e) => {
-//     if (e.target.id === 'can') {
-//         console.log('y' + e.offsetY)
-//     }
-// })
+document.addEventListener('mouseover', (e) => {
+    if (e.target.id === 'can') {
+        // console.log('y' + e.offsetY)
+    }
+})
+
+// NOTE: canvas.style.height需要比MOUSE_TOLERENCE大
+function getMouseHoveredTime (offsetY) {
+    const MOUSE_TOLERENCE = 1 // 上下5像素容错范围
+    let acceptableHead = _calculateChangePointTime(Math.max(offsetY, MOUSE_TOLERENCE) - MOUSE_TOLERENCE)
+    let acceptableBottom = _calculateChangePointTime(Math.min(offsetY, parseInt(canvas.style.height) - MOUSE_TOLERENCE) + MOUSE_TOLERENCE)
+    let acceptableTimes = times.filter((time) => {
+        return acceptableHead <= time && time <= acceptableBottom
+    })
+    return acceptableTimes[0] // 只挑在容错范围内的第一条
+}
 
 draw()
 function move(cssMove) {
@@ -190,7 +200,7 @@ function drawTimeLine(width, height, color) {
 }
 
 function drawLine(startPoint, endPoint, color) {
-    context.strokeStyle = color || 'rgb(255,165,0)'
+    context.strokeStyle = color || GREY
     context.beginPath()
     context.moveTo(startPoint.x, startPoint.y)
     context.lineTo(endPoint.x, endPoint.y)
@@ -198,9 +208,16 @@ function drawLine(startPoint, endPoint, color) {
 }
 
 function drawText(text, width, height) {
+    context.fillStyle = BLACK
     context.font = '20px serif'
     context.fillText(text, width, height)
 }
+
+function drawBoldLine (startPoint, width, height, color) {
+    context.fillStyle = color || BLUE
+    context.fillRect(startPoint.x, startPoint.y, width, height)
+}
+
 function draw() {
     drawLine({ x: timeTextWidth, y: 0 }, { x: timeTextWidth, y: barHeight })
     var dif = timeBoundEnd - timeBoundStart
@@ -225,12 +242,9 @@ function draw() {
     times.filter((ctime) => {
         return ctime >= timeBoundStart && ctime <= timeBoundEnd
     }).forEach(function(ctime) {
-        let color = '#000'
+        let color = BLACK
         if (highLightTimes.indexOf(ctime) >= 0) {
-            color = '#f63'
-        }
-        if (ctime === redTime) {
-            color = 'blue'
+            color = RED
         }
         drawTimeLine(50 * ratio, barHeight * ((ctime - timeBoundStart) / dif), color)
         if (timesNeedStamp.indexOf(ctime) >= 0) {
@@ -239,4 +253,23 @@ function draw() {
     })
     drawText(stringify(new Date(timeBoundStart)), 0, 10 * ratio)
     drawText(stringify(new Date(timeBoundEnd)), 0, barHeight - (10 * ratio))
+}
+
+function showToolTip (offsetY) {
+    var timeSelected = getMouseHoveredTime(offsetY)
+    if (timeSelected) {
+        // 标粗选中的timeline
+        var dif = timeBoundEnd - timeBoundStart
+        var toolTipY = ((timeSelected - timeBoundStart) / dif) * parseInt(canvas.style.height)
+        drawBoldLine({
+            x: timeTextWidth,
+            y: toolTipY * ratio - 2 * ratio
+        }, 50 * ratio, 8, BLUE)
+        // 展示tooltip
+        $tooltip.innerHTML = '时间: ' + stringify(new Date(timeSelected))
+        $tooltip.style.display = 'block'
+        $tooltip.style.top = toolTipY
+    } else {
+        $tooltip.style.display = 'none'
+    }
 }
