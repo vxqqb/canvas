@@ -34,7 +34,6 @@ var timeBoundEnd = initEnd
 var timeTextWidth = 50 * ratio
 var timeLineRatio = 1.1
 var TIME_SCALE_STEP = 0.1 // 单步缩放比例
-var lastFrameTime = Date.now()
 var mouseDown = false
 var mouseLastMovePoint
 const TIMELINE_SECTION_COUNT = 5 // 整条bar分5段里抽取timeline展示时间刻度
@@ -48,7 +47,6 @@ document.addEventListener('mousewheel', (e) => {
     e.preventDefault()
     e.stopPropagation()
     if (e.target.id === 'can') {
-        lastFrameTime = Date.now()
         if (e.wheelDelta > 0) {
             augment(e.offsetY)
         } else {
