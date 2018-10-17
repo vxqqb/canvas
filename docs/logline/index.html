@@ -13,12 +13,16 @@
         #canvas-wrapper {
             height: 100%;
             width: 100px;
+            position: relative;
         }
         #can {
             background-color: white;
         }
-        #control-wrapper {
-            margin-left: 20px;
+        #float-can {
+            background-color: transparent;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         #tooltip {
             position: absolute;
@@ -28,15 +32,18 @@
             border-radius: 5px;
             padding: 0px 10px;
             line-height: 25px;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
     <div id="canvas-wrapper">
         <canvas id="can"></canvas>
+        <canvas id="float-can"></canvas>
         <div id="tooltip"></div>
     </div>
-    <script src="./common.js"></script>
+    <!-- <div id="float-canvas-wrapper">
+    </div> -->
     <script src="./logtypelist.js"></script>
     <script src="./lines.js"></script>
 </body>

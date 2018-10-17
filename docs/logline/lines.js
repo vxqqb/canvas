@@ -1,3 +1,30 @@
+
+var canvasWrapper = document.getElementById('canvas-wrapper')
+var canvas = document.getElementById('can')
+var context = canvas.getContext('2d')
+var floatCanvas = document.getElementById('float-can')
+var floatContext = floatCanvas.getContext('2d')
+
+// 屏幕的设备像素比
+var devicePixelRatio = window.devicePixelRatio || 1;
+// 浏览器在渲染canvas之前存储画布信息的像素比
+var backingStoreRatio = (context.webkitBackingStorePixelRatio ||
+                    context.mozBackingStorePixelRatio ||
+                    context.msBackingStorePixelRatio ||
+                    context.oBackingStorePixelRatio ||
+                    context.backingStorePixelRatio || 1);
+// canvas的实际渲染倍率
+var ratio = devicePixelRatio / backingStoreRatio
+
+function setCanvasSize (canvas, canvasWrapper) {
+    canvas.height = canvasWrapper.clientHeight * ratio
+    canvas.width = canvasWrapper.clientWidth * ratio
+    canvas.style.height = canvasWrapper.clientHeight
+    canvas.style.width = canvasWrapper.clientWidth
+}
+setCanvasSize(canvas, canvasWrapper)
+setCanvasSize(floatCanvas, canvasWrapper)
+
 var stringify = (date, noMiniSec) => {
     let H = date.getHours()
     H = H < 10 ? '0' + H : H
@@ -51,9 +78,8 @@ if (LOG_LINE_COUNT < 2 || LOG_LINE_COUNT < LOGLINE_SECTION_COUNT + 1) {
     draw()
     showHighlightFrame()
     document.addEventListener('mousemove', (e) => {
-        redraw()
-        showHighlightFrame()
-        if (e.target.id === 'can' && isMouseTouchInBar(e)) {
+        redrawFloatCanvas()
+        if (e.target.id === 'float-can' && isMouseTouchInBar(e)) {
             let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY - barTopMargin)
             if (hoveredLogIndex !== null) {
                 showToolTip(hoveredLogIndex, logs[hoveredLogIndex])
@@ -61,9 +87,8 @@ if (LOG_LINE_COUNT < 2 || LOG_LINE_COUNT < LOGLINE_SECTION_COUNT + 1) {
         }
     })
     document.addEventListener('mouseover', (e) => {
-        redraw()
-        showHighlightFrame()
-        if (e.target.id === 'can' && isMouseTouchInBar(e)) {
+        redrawFloatCanvas()
+        if (e.target.id === 'float-can' && isMouseTouchInBar(e)) {
             let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY - barTopMargin)
             if (hoveredLogIndex !== null) {
                 showToolTip(hoveredLogIndex, logs[hoveredLogIndex])
@@ -71,12 +96,12 @@ if (LOG_LINE_COUNT < 2 || LOG_LINE_COUNT < LOGLINE_SECTION_COUNT + 1) {
         }
     })
     document.addEventListener('click', (e) => {
-        if (e.target.id === 'can' && isMouseTouchInBar(e)) {
+        if (e.target.id === 'float-can' && isMouseTouchInBar(e)) {
             let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY - barTopMargin)
             if (hoveredLogIndex !== null) {
                 highlightLogStartIndex = hoveredLogIndex
-                redraw()
-                showHighlightFrame()
+                redrawFloatCanvas()
+                showToolTip(hoveredLogIndex, logs[hoveredLogIndex])
             }
         }
     })
@@ -88,13 +113,13 @@ function isMouseTouchInBar (e) {
     return offsetY >= barTopMargin && offsetY <= barCssHeight + barTopMargin && offsetX >= timeTextCssWidth && offsetX <= timeTextCssWidth + barCssWidth
 }
 
-function redraw () {
+function redrawFloatCanvas () {
     $tooltip.style.display = 'none'
-    clearCanvas()
-    draw()
+    clearCanvas(floatContext)
+    showHighlightFrame()
 }
 
-function clearCanvas() {
+function clearCanvas(context) {
     context.clearRect(0, 0, canvas.width, canvas.height)
 }
 
@@ -117,7 +142,7 @@ function drawText(text, x, y) {
     context.fillText(text, x, y)
 }
 
-function drawBoldLine (startPoint, width, height, color) {
+function drawBoldLine (startPoint, width, height, color, context) {
     context.fillStyle = color || BLUE
     context.fillRect(startPoint.x, startPoint.y, width, height)
 }
@@ -128,7 +153,7 @@ function drawBoldLine (startPoint, width, height, color) {
  * @param {*} endPoint 右下角的坐标
  * @param {*} frameLineWidth 
  */
-function drawFrame (startPoint, endPoint, frameLineWidth, color) {
+function drawFrame (startPoint, endPoint, frameLineWidth, color, context) {
     context.fillStyle = color || '#eb2f96'
     let frameWidth = endPoint.x - startPoint.x + 2 * frameLineWidth
     let frameHeight = endPoint.y - startPoint.y + 2 * frameLineWidth
@@ -172,7 +197,7 @@ function draw() {
 
 function showHighlightFrame () {
     var lineCanvasHeightSpan = barHeight / (LOG_LINE_COUNT - 1)
-    const FRAME_LINE_WIDTH = 3 * ratio
+    const FRAME_LINE_WIDTH = 2 * ratio
     const FRAME_COLOR = BLUE
     let logStartIndex = highlightLogStartIndex < LOG_LINE_COUNT - HIGH_LIGHT_LOG_LINE_COUNT - 1 ? highlightLogStartIndex : (LOG_LINE_COUNT - HIGH_LIGHT_LOG_LINE_COUNT - 1)
     let frameStartPoint = {
@@ -183,7 +208,7 @@ function showHighlightFrame () {
         x: timeTextWidth + barWidth,
         y: (logStartIndex + HIGH_LIGHT_LOG_LINE_COUNT) * lineCanvasHeightSpan + barTopHeight
     }
-    drawFrame(frameStartPoint, frameEndPoint, FRAME_LINE_WIDTH, FRAME_COLOR)
+    drawFrame(frameStartPoint, frameEndPoint, FRAME_LINE_WIDTH, FRAME_COLOR, floatContext)
 }
 
 function showToolTip (index, log) {
@@ -191,7 +216,7 @@ function showToolTip (index, log) {
     drawBoldLine({
         x: timeTextWidth - 8 * ratio,
         y: lineCanvasHeightSpan * index + barTopHeight - 2 * ratio
-    }, barWidth + 2 * 8 * ratio, 4 * ratio, ORANGE)
+    }, barWidth + 2 * 8 * ratio, 3 * ratio, ORANGE, floatContext)
     // 展示tooltip
     $tooltip.innerHTML = '时间: ' + stringify(new Date(log.time)) + '</br>日志类型: ' + log.logType.logTypeName
     $tooltip.style.display = 'block'
