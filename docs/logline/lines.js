@@ -10,8 +10,8 @@ var stringify = (date, noMiniSec) => {
 }
 const DAY_START = 1539619200000
 const DAY_SPAN = 86400000
-const LOG_LINE_COUNT = 10
-const HIGH_LIGHT_LOG_LINE_COUNT = 3
+const LOG_LINE_COUNT = 1000
+const HIGH_LIGHT_LOG_LINE_COUNT = 150
 let LOGLINE_SECTION_COUNT = 5 // 整条bar分5段展示时间刻度
 if (LOG_LINE_COUNT <= 10) {
     LOGLINE_SECTION_COUNT = LOG_LINE_COUNT - 1 
@@ -22,6 +22,8 @@ const BLACK = '#000'
 const GREY = '#bfbfbf'
 const RED = '#ff4d4f'
 const BLUE = '#1890ff'
+const GREEN = '#52c41a'
+const ORANGE = '#fa541c'
 var logs = Array.from({length: LOG_LINE_COUNT}).map(() => {
     return {
         time: parseInt(Math.random() * DAY_SPAN) + DAY_START,
@@ -31,10 +33,16 @@ var logs = Array.from({length: LOG_LINE_COUNT}).map(() => {
     return a.time - b.time
 })
 
-var barHeight = canvas.height
-var barCssHeight = parseInt(canvas.style.height)
-var barWidth = 30 * ratio
-var timeTextWidth = 50 * ratio
+var barTopMargin = 30
+var barTopHeight = barTopMargin * ratio
+var barBottomMargin = 20
+var barBottomHeight = barBottomMargin * ratio
+var barHeight = canvas.height - barTopHeight - barBottomHeight
+var barCssHeight = parseInt(canvas.style.height) - barTopMargin - barBottomMargin
+var barCssWidth = 30
+var barWidth = barCssWidth * ratio
+var timeTextCssWidth = 50
+var timeTextWidth = timeTextCssWidth * ratio
 var $tooltip = document.getElementById('tooltip')
 
 if (LOG_LINE_COUNT < 2 || LOG_LINE_COUNT < LOGLINE_SECTION_COUNT + 1) {
@@ -45,8 +53,8 @@ if (LOG_LINE_COUNT < 2 || LOG_LINE_COUNT < LOGLINE_SECTION_COUNT + 1) {
     document.addEventListener('mousemove', (e) => {
         redraw()
         showHighlightFrame()
-        if (e.target.id === 'can') {
-            let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY)
+        if (e.target.id === 'can' && isMouseTouchInBar(e)) {
+            let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY - barTopMargin)
             if (hoveredLogIndex !== null) {
                 showToolTip(hoveredLogIndex, logs[hoveredLogIndex])
             }
@@ -55,16 +63,16 @@ if (LOG_LINE_COUNT < 2 || LOG_LINE_COUNT < LOGLINE_SECTION_COUNT + 1) {
     document.addEventListener('mouseover', (e) => {
         redraw()
         showHighlightFrame()
-        if (e.target.id === 'can') {
-            let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY)
+        if (e.target.id === 'can' && isMouseTouchInBar(e)) {
+            let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY - barTopMargin)
             if (hoveredLogIndex !== null) {
                 showToolTip(hoveredLogIndex, logs[hoveredLogIndex])
             }
         }
     })
     document.addEventListener('click', (e) => {
-        if (e.target.id === 'can') {
-            let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY)
+        if (e.target.id === 'can' && isMouseTouchInBar(e)) {
+            let hoveredLogIndex = getMouseHoveredLogIndex(e.offsetY - barTopMargin)
             if (hoveredLogIndex !== null) {
                 highlightLogStartIndex = hoveredLogIndex
                 redraw()
@@ -73,6 +81,13 @@ if (LOG_LINE_COUNT < 2 || LOG_LINE_COUNT < LOGLINE_SECTION_COUNT + 1) {
         }
     })
 }
+
+function isMouseTouchInBar (e) {
+    let offsetX = e.offsetX
+    let offsetY = e.offsetY
+    return offsetY >= barTopMargin && offsetY <= barCssHeight + barTopMargin && offsetX >= timeTextCssWidth && offsetX <= timeTextCssWidth + barCssWidth
+}
+
 function redraw () {
     $tooltip.style.display = 'none'
     clearCanvas()
@@ -84,7 +99,7 @@ function clearCanvas() {
 }
 
 function drawLogLine(width, height, color) {
-    drawLine({ x: timeTextWidth, y: height }, { x: timeTextWidth + width, y: height }, color)
+    drawLine({ x: timeTextWidth, y: height + barTopHeight }, { x: timeTextWidth + width, y: height + barTopHeight }, color)
 }
 
 function drawLine(startPoint, endPoint, color) {
@@ -95,10 +110,11 @@ function drawLine(startPoint, endPoint, color) {
     context.stroke()
 }
 
-function drawText(text, width, height) {
+function drawText(text, x, y) {
     context.fillStyle = BLACK
     context.font = '20px serif'
-    context.fillText(text, width, height)
+    context.textBaseline = "middle";
+    context.fillText(text, x, y)
 }
 
 function drawBoldLine (startPoint, width, height, color) {
@@ -128,8 +144,8 @@ function drawFrame (startPoint, endPoint, frameLineWidth, color) {
 
 function draw() {
     // 画bar的border
-    drawLine({ x: timeTextWidth, y: 0 }, { x: timeTextWidth, y: barHeight })
-    drawLine({ x: timeTextWidth + barWidth, y: 0 }, { x: timeTextWidth + barWidth, y: barHeight })
+    drawLine({ x: timeTextWidth, y: barTopHeight }, { x: timeTextWidth, y: barTopHeight + barHeight })
+    drawLine({ x: timeTextWidth + barWidth, y: barTopHeight }, { x: timeTextWidth + barWidth, y: barTopHeight + barHeight })
     var lineCanvasHeightSpan = barHeight / (LOG_LINE_COUNT - 1)
     // 画logline
     logs.forEach(function(log, index) {
@@ -145,29 +161,27 @@ function draw() {
     }).concat(logs[LOG_LINE_COUNT - 1].time)
     timeStamps.forEach((time, index) => {
         let height
-        if (index === 0) {
-            height = 10 * ratio
-        } else if (index === timeStamps.length - 1) {
-            height = barHeight - (5 * ratio)
+        if (index === timeStamps.length - 1) {
+            height = barHeight
         } else {
             height = index * (barHeight / LOGLINE_SECTION_COUNT)
         }
-        drawText(stringify(new Date(time), true), 10 * ratio, height)
+        drawText(stringify(new Date(time), true), 10 * ratio, height + barTopHeight)
     })
 }
 
 function showHighlightFrame () {
     var lineCanvasHeightSpan = barHeight / (LOG_LINE_COUNT - 1)
     const FRAME_LINE_WIDTH = 3 * ratio
-    const FRAME_COLOR = '#fa541c'
+    const FRAME_COLOR = BLUE
     let logStartIndex = highlightLogStartIndex < LOG_LINE_COUNT - HIGH_LIGHT_LOG_LINE_COUNT - 1 ? highlightLogStartIndex : (LOG_LINE_COUNT - HIGH_LIGHT_LOG_LINE_COUNT - 1)
     let frameStartPoint = {
         x: timeTextWidth,
-        y: logStartIndex * lineCanvasHeightSpan
+        y: logStartIndex * lineCanvasHeightSpan + barTopHeight
     }
     let frameEndPoint = {
         x: timeTextWidth + barWidth,
-        y: (logStartIndex + HIGH_LIGHT_LOG_LINE_COUNT) * lineCanvasHeightSpan
+        y: (logStartIndex + HIGH_LIGHT_LOG_LINE_COUNT) * lineCanvasHeightSpan + barTopHeight
     }
     drawFrame(frameStartPoint, frameEndPoint, FRAME_LINE_WIDTH, FRAME_COLOR)
 }
@@ -175,13 +189,13 @@ function showHighlightFrame () {
 function showToolTip (index, log) {
     var lineCanvasHeightSpan = barHeight / (LOG_LINE_COUNT - 1)
     drawBoldLine({
-        x: timeTextWidth,
-        y: lineCanvasHeightSpan * index - 3
-    }, barWidth, 6, BLUE)
+        x: timeTextWidth - 8 * ratio,
+        y: lineCanvasHeightSpan * index + barTopHeight - 2 * ratio
+    }, barWidth + 2 * 8 * ratio, 4 * ratio, ORANGE)
     // 展示tooltip
     $tooltip.innerHTML = '时间: ' + stringify(new Date(log.time)) + '</br>日志类型: ' + log.logType.logTypeName
     $tooltip.style.display = 'block'
-    $tooltip.style.top = lineCanvasHeightSpan * index / ratio
+    $tooltip.style.top = parseInt(lineCanvasHeightSpan * index / ratio) + barTopMargin
 }
 
 function getMouseHoveredLogIndex (offsetY) {
